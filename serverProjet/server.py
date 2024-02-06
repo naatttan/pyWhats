@@ -1,6 +1,7 @@
 
 import threading
 import socket
+import os
 
 from session import Session
 from conversation import Conversation, Message
@@ -37,6 +38,8 @@ class Server:
     # fonction principale du serveur
     def run(self):
         self.controlleur.verifierRepertoire()
+        self.charger()
+        
         self.controlleur.accepterConnexions()
             
         
@@ -58,16 +61,38 @@ class Server:
     # fonction permettant d'ajouter uneconversation dans la liste des conversations
     def addConversation(self, conv: Conversation):
         self.listeConversations[conv.idConversation] = conv
-        
+      
+    
+    def charger(self):
+        self.chargerConversations()
+        self.chargerListeConvUser()
+        print(self.listeConvUser)
+        print(self.listeConversations)
+        if self.DEBUG:
+            print("[Serveur charge]")  
+    
     # fonction permettant de remplir la liste de correspondance des utilisateurs dans les conversations en lisant le fichier qui les contient
     def chargerListeConvUser(self):
         with open(self.listeConvUserPath) as fichier:
             for line in fichier.readlines():
                 if line.split("\\")[0] in self.listeConvUser.keys():
-                    self.listeConvUser.get(line.split("\\")[0]).append(line.split("\\")[1])
+                    self.listeConvUser.get(line.split("\\")[0]).append(line.split("\\")[1].strip())
                 else:
                     self.listeConvUser[line.split("\\")[0]] = []
-                    self.listeConvUser.get(line.split("\\")[0]).append(line.split("\\")[1])
+                    self.listeConvUser.get(line.split("\\")[0]).append(line.split("\\")[1].strip())
+                    
+    
+    def chargerConversations(self):
+        for f in os.listdir(self.filePath):
+            try:
+                a = int(f)
+                if os.path.isdir(self.filePath + "/" + f):
+                    conv = Conversation(a, self.controlleur)
+                    conv.chargerConversation()
+                    self.listeConversations[f] = conv
+            except Exception as e:
+                print(f"[Erreur chargerConversation] {e}")
+                
       
     # fonction permettant de lancer un thread d'une session lorsqu'un utilisateur se connecte
     def lancerSession(self, session: Session):
@@ -83,8 +108,16 @@ class Server:
                 thread.join()
                 self.listeThreads.remove(thread)
         print("[Tous les threads terminés]")
+        # for s in self.liste_session.values():
+        #     s.socket.close()
         self.liste_session.clear()
         print("[Toutes les sessions fermées]")
+        self.echangeur.fermerSocketServer()
+        
+        
+    # getters
+    def getUsersPath(self):
+        return self.usersPath
         
         
 if __name__ == "__main__":

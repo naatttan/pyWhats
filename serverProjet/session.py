@@ -13,11 +13,13 @@ class Session:
         self.addr_client = addr_client
         self.synchronise = False
         self.controlleur = ControlleurSession(self) # controlleur gérant les fonctionnalités de la session client
+        self.connecte = False
         
     # fonction d'une session utilisateur en cours
     def run(self):
+        self.connecte = True
         # self.synchronisation()
-        while True and not self.server.finThreads:
+        while not self.server.finThreads and self.connecte:
             try:
                 rcv = self.echangeur.ecouter(self.socket)
                 match rcv['typeEchange']:
@@ -34,27 +36,29 @@ class Session:
                     case other:
                         pass
             except Exception as erreur:
-                print([f"Erreur: {erreur}"])
+                print(f"[Erreur run session] {erreur}")
                 break
     
     # fonction permettant de gérer les echanges de connexion
     def echange_connexion(self, rcv):
         match rcv['typeMessage']:
             case '0':
-                pass
+                self.echangeur.reponseConnexion(self.socket, 3, "Vous etes deja connecte.")
             case '1':
                 pass
             case '2':
                 pass
             case '3':
-                pass
+                self.connecte = False
+                self.echangeur.reponseDeconnexion(self.socket, 0, "")
     
     # fonction permettant de gérer les echanges de messages
     def echange_msg(self, rcv):
         match rcv['typeMessage']:
             case '0':
-                msg = rcv['data'].split('//')
-                self.controlleur.enregistrerMessage(msg[0], Message(msg[0], msg[1], msg[2], msg[3]))
+                msg = rcv['data'].split('\\')
+                enregistrementMsg = self.controlleur.enregistrerMessage(int(msg[0]), Message(int(msg[0]), msg[1], float(msg[2]), msg[3]))
+                self.echangeur.reponseMessage(self.socket, enregistrementMsg[0], enregistrementMsg[1])
             case '1':
                 pass
             case '2':
@@ -81,7 +85,12 @@ class Session:
             case '0':
                 pass
             case '1':
-                pass
+                msg = rcv['data'].split('\\')
+                telechargement = self.controlleur.telechargementFichier(msg[0], msg[2])
+                if telechargement[0] == 0 :
+                    self.echangeur.telechargementFichierOk(self.socket)
+                else:
+                    self.echangeur.telechargementFichierErreur(self.socket, telechargement[0], telechargement[1])
             case '2':
                 pass
             case '3':
