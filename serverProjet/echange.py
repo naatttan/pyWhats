@@ -46,6 +46,36 @@ class Echange:
             return msgRcv
         except Exception as erreur:
             print(f"[Erreur ecoute] {erreur}")
+            
+    
+    # fonction ecoutant sur un socket et ressortant un dictionnaire contenant les différents champs du message
+    def ecouterDataFichier(self, sock: socket.socket):
+        try:
+            data = sock.recv(1024)
+            # strRcv = "{}".format(data.decode('utf-8'))
+            version, typeEchange, typeMessage, erreur, taille, donnees = struct.unpack("IIIII1004s", data)
+            # strRcv = data.decode()
+            
+            # if self.server.DEBUG:
+            #     print(f"[Recu] -> {data}")
+            msgRcv = {
+            'version': str(version),
+            'typeEchange': typeEchange,
+            'typeMessage': typeMessage,
+            'erreur': erreur,
+            'taille': taille,
+            'data': donnees[:taille]
+            }
+            # if self.server.DEBUG:
+            #     print(f"[Recu data file] -> data")
+            return msgRcv
+        except Exception as erreur:
+            print(f"[Erreur ecoute file] {erreur}")
+            
+    def reponseEnregistrementFichier(self, socket: socket.socket, numErreur: int, infoErreur: str):
+        # envoie = self.version + "//1//2//" + str(numErreur) + "//" + infoErreur
+        envoie = struct.pack("IIII1008s", int(self.version), 3, 2, numErreur, infoErreur.encode())
+        socket.send(envoie)
     
     # fonction envoyant la réponse pour une connexion
     def reponseConnexion(self, socket: socket.socket, numErreur: int, infoErreur: str):
@@ -68,17 +98,25 @@ class Echange:
     # fonction envoyant le token d'envoie de fichier au client
     def envoieTokenFichier(self, socket: socket.socket):             
         envoie = self.version + "//3//0//0//"
-        socket.send(envoie.encode())
-        
+        envoie = struct.pack("IIII1008s", int(self.version), 3, 0, 0, "".encode())
+        socket.send(envoie)
+               
     
+    ###### SYNCHRO TYPE ECHANGE 5
     def envoieMessageSynchro(self, socket: socket.socket, msg):
         data = str(msg.conv) + "\\" + msg.user + "\\" + str(msg.timer) + "\\" + msg.texte
         # envoie = self.version + "//5//2//" + '0' + "//" + data
         envoie = struct.pack("IIII1008s", int(self.version), 5, 2, 0, data.encode())
         socket.send(envoie)
+        
+    def envoieListeMessageSynchro(self, socket: socket.socket, messages: list):
+        for msg in messages:
+            self.envoieMessageSynchro(socket, msg)
     
-    def envoieListeMessageSynchro(self, socket: socket.socket, conv):
-        pass
+    def demandeSynchro(self, socket: socket.socket, conv: int):
+        ### type message 1
+        envoie = struct.pack("IIII1008s", int(self.version), 5, 1, 0, f"{str(conv)}".encode())
+        socket.send(envoie)
     
     def telechargementFichier(self, socket: socket.socket, filePath: str):
         with open(filePath, 'rb') as fichier_entree:
@@ -87,7 +125,7 @@ class Echange:
                 # modification de la structure pour ajouter la taille des données envoyées
                 envoie = struct.pack("IIIII1004s", int(self.version), 4, 0, 0, len(donnees), donnees)
                 socket.send(envoie)
-                donnees = fichier_entree.read(1024)
+                donnees = fichier_entree.read(1004)
     
     def telechargementFichierOk(self, socket: socket.socket):
         envoie = struct.pack("IIII1008s", int(self.version), 4, 3, 0, "".encode())

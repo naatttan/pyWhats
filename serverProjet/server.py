@@ -33,7 +33,7 @@ class Server:
         self.finThreads = False
         
         self.DEBUG = True
-    
+            
     
     # fonction principale du serveur
     def run(self):
@@ -67,7 +67,7 @@ class Server:
         self.chargerConversations()
         self.chargerListeConvUser()
         print(self.listeConvUser)
-        print(self.listeConversations)
+        print(self.listeConversations.keys())
         if self.DEBUG:
             print("[Serveur charge]")  
     

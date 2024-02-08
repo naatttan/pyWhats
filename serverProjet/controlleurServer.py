@@ -47,12 +47,12 @@ class ControlleurServer:
             if not accept:
                 self.echangeur.reponseConnexion(sock_client, 1, "Ce profil n'existe pas")
                 return 1
+        self.echangeur.reponseConnexion(sock_client, 0, f'Connecte en tant que {user}')
         session = Session(user, sock_client, self.server, addr_client)
         self.server.addSession(session)
-        self.server.lancerSession(session)
-        self.echangeur.reponseConnexion(sock_client, 0, '')
         if self.server.DEBUG:
-            print(f"[Session: {user}]")
+            print(f"[Session: {user}]")        
+        self.server.lancerSession(session)
         return 0
     
     # fonction permettant d'envoyer un message à tous les utilisateurs connectés appartenant à une conversation

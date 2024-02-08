@@ -6,7 +6,7 @@ class Conversation:
     def __init__(self, id, controlleur):
         self.server = controlleur.server
         self.idConversation: int = id
-        self.messages = [Message]
+        self.messages = []
        
        
     # fonction permettant de créer une conversation et de créer son répertoire de stockage 
@@ -22,7 +22,7 @@ class Conversation:
             
      
     # fonction permettant d'ajouter un message à une conversation et de l'enregistrer dans les fichiers de la conversation   
-    def addMessage(self, user: str, timer: int, texte: str):
+    def addMessage(self, user: str, timer: float, texte: str):
         self.messages.append(Message(self.idConversation ,user, timer, texte))
         with open(self.server.filePath + "/" + str(self.idConversation) + '/messages', 'a+') as fichier:
             fichier.write(f"{timer}\\{user}\\{texte}\n")
@@ -32,7 +32,7 @@ class Conversation:
     def chargerConversation(self):
         with open(self.server.filePath + "/" + str(self.idConversation) + '/messages', 'r') as fichier:
             for line in fichier.readlines():
-                self.messages.append(Message(self.idConversation ,line.split("\\")[1], line.split("\\")[0], line.split("\\")[2].strip()))
+                self.messages.append(Message(self.idConversation ,line.split("\\")[1], float(line.split("\\")[0]), line.split("\\")[2].strip()))
                 
                 
             
@@ -49,3 +49,6 @@ class Message:
         
     def getUser(self):
         return self.user
+    
+    def getTimer(self):
+        return self.timer

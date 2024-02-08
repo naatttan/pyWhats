@@ -1,4 +1,5 @@
 import socket
+import time
 # from server import Server
 from controlleurSession import ControlleurSession
 from conversation import Conversation, Message
@@ -18,7 +19,8 @@ class Session:
     # fonction d'une session utilisateur en cours
     def run(self):
         self.connecte = True
-        # self.synchronisation()
+        time.sleep(0.01)
+        self.synchronisation()
         while not self.server.finThreads and self.connecte:
             try:
                 rcv = self.echangeur.ecouter(self.socket)
@@ -72,6 +74,11 @@ class Session:
             case '0':
                 pass
             case '1':
+                #### le nom du fichier et le timer sont passé lors de la demande de token
+                #### le fichier doit etre enregistré comme un message ???
+                msg = rcv['data'].split('\\')
+                repEnvoieFichier = self.controlleur.enregistrerFichier(int(msg[0]), Message(int(msg[0]), msg[1], float(msg[2]), f"~&~{msg[3]}"))
+                self.echangeur.reponseEnregistrementFichier(self.socket, repEnvoieFichier[0], repEnvoieFichier[1])
                 pass
             case '2':
                 pass
@@ -86,7 +93,7 @@ class Session:
                 pass
             case '1':
                 msg = rcv['data'].split('\\')
-                telechargement = self.controlleur.telechargementFichier(msg[0], msg[2])
+                telechargement = self.controlleur.telechargementFichier(msg[0], msg[1], msg[2])
                 if telechargement[0] == 0 :
                     self.echangeur.telechargementFichierOk(self.socket)
                 else:
@@ -97,9 +104,24 @@ class Session:
                 pass
     
     # fonction permettant de gérer la synchronisation du client
-    def synchronisation(self, rcv):
-        
-        pass
+    def synchronisation(self):
+        if self.server.DEBUG:
+            print(f"[{self.user} synchronisation...]")
+        for conv in self.server.listeConvUser.keys():
+            if self.user in self.server.listeConvUser.get(conv):
+                self.synchroniserConv(self.server.listeConversations.get(conv))
+        if self.server.DEBUG:
+            print(f"[{self.user} synchronise.]")
+    
+    def synchroniserConv(self, conv: Conversation):
+        self.echangeur.demandeSynchro(self.socket, conv.idConversation)
+        rep = self.echangeur.ecouter(self.socket)
+        messages = []
+        for msg in conv.messages:
+            print(msg)
+            if msg.getTimer() >= float(rep['data'].split("\\")[2]):
+                messages.append(msg)
+        self.echangeur.envoieListeMessageSynchro(self.socket, messages)
     
     def synchroniserMessage(self, message: Message):
         self.controlleur.synchroniserMessage(message)
